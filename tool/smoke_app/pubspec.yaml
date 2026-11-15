@@ -1,0 +1,28 @@
+name: libtailcat_smoke
+description: >-
+  Runs libtailcat inside a real app sandbox: the checks a desktop test cannot
+  make. See tool/smoke_test.dart.
+publish_to: none
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+  libtailcat:
+    path: ../..
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+
+# The app is the root package here, so this configures libtailcat's build
+# hook: compile the native library with Go from the pinned upstream commit,
+# including the Android patch. tool/smoke_test.dart points `local_config` at a
+# file of its own to test a library obtained another way.
+hooks:
+  user_defines:
+    libtailcat:
+      native: source
+      local_config: hook_config.json

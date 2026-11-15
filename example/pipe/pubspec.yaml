@@ -1,0 +1,22 @@
+name: libtailcat_pipe
+description: >-
+  A two-way pipe between two machines over a Tailcat tunnel: the smallest
+  complete libtailcat program. It also talks to the tailcat command-line tool.
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  libtailcat:
+    path: ../..
+
+dev_dependencies:
+  lints: ^6.1.0
+
+# Picks up the repo's git-ignored hook override; has no effect without it.
+# Otherwise the hook downloads a verified prebuilt library.
+hooks:
+  user_defines:
+    libtailcat:
+      local_config: ../../hook/local_config.json

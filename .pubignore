@@ -1,0 +1,27 @@
+# Not part of the pub package.
+specs/
+# The demo video; the README links to it on GitHub.
+video/
+.github/
+hook/local_config.json
+# Maintainer-only tooling with its own pubspec (needs ffigen + libclang).
+tool/ffigen/
+# The mobile smoke-test app (a Flutter project of its own) and its runner.
+tool/smoke_app/
+tool/smoke_test.dart
+# Local build outputs.
+build/
+out/
+*.env
+# A .pubignore replaces .gitignore for publishing, so repeat what matters.
+.dart_tool/
+coverage/
+*.log
+.DS_Store
+.idea/
+.vscode/
+*.iml
+*.dylib
+*.so
+*.dll
+*.a

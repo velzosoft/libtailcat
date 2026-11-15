@@ -1,0 +1,6 @@
+# The single upstream pin; the other files in native/ are copies from it.
+# Change it with `dart run tool/sync_upstream.dart <commit>`.
+repository: https://github.com/tailscale/tailcat
+commit: e00cdde6ff787f801361ff85ed085775c775d4c5
+go: 1.27.2
+abi: 1

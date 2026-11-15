@@ -1,0 +1,42 @@
+name: tin_can
+description: >-
+  A private line between two devices, and an example for package:libtailcat.
+  Pair once with a QR code; then, while both apps are open, see each other's
+  fingertip, pluck the string and talk. No account and no server.
+publish_to: none
+version: 0.1.0+1
+
+# For record and material_ui; libtailcat itself needs only Dart 3.10.
+environment:
+  sdk: ^3.13.0
+  flutter: '>=3.47.0'
+
+dependencies:
+  crypto: ^3.0.7
+  flutter:
+    sdk: flutter
+  flutter_pcm_sound: ^3.3.3
+  libtailcat:
+    path: ../..
+  material_ui: ^1.11.0
+  mobile_scanner: ^7.5.0
+  qr_flutter: ^4.1.0
+  record: ^7.2.0
+  shared_preferences: ^2.5.6
+
+dev_dependencies:
+  flutter_lints: ^6.0.0
+  flutter_test:
+    sdk: flutter
+  integration_test:
+    sdk: flutter
+
+flutter:
+  uses-material-design: true
+
+# Picks up the repository's git-ignored override file; without it the hook
+# downloads a verified prebuilt library.
+hooks:
+  user_defines:
+    libtailcat:
+      local_config: ../../hook/local_config.json

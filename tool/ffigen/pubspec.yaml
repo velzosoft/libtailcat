@@ -1,0 +1,10 @@
+name: libtailcat_ffigen
+description: Maintainer-only tool that regenerates lib/src/bindings/tailcat_bindings.g.dart from native/tailcat.h.
+publish_to: none
+
+environment:
+  sdk: ^3.10.0
+
+dependencies:
+  ffigen: ^23.0.0
+  path: ^1.9.1

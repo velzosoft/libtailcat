@@ -1,0 +1,239 @@
+name: Native release
+
+# Builds every release target at the pinned commit, publishes release
+# `native-<commit>-<build>` and opens a PR pinning its checksums.
+#
+# The PR step needs "Allow GitHub Actions to create and approve pull requests"
+# (Settings > Actions > General); without it, open one from the pushed
+# `native-manifest/<tag>` branch.
+
+on:
+  workflow_dispatch:
+    inputs:
+      build:
+        description: Build number of this release for the pinned commit
+        required: true
+        default: '1'
+
+concurrency:
+  group: native-release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+  attestations: write
+
+jobs:
+  plan:
+    name: Plan
+    runs-on: ubuntu-24.04
+    outputs:
+      tag: ${{ steps.pin.outputs.tag }}
+      go: ${{ steps.pin.outputs.go }}
+      commit: ${{ steps.pin.outputs.commit }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: pin
+        env:
+          BUILD: ${{ inputs.build }}
+        run: |
+          set -euo pipefail
+          [[ "$BUILD" =~ ^[1-9][0-9]*$ ]] || { echo "build must be a positive number, got '$BUILD'" >&2; exit 1; }
+          commit=$(sed -n 's/^commit: //p' native/UPSTREAM)
+          tag="native-${commit:0:12}-$BUILD"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" > /dev/null 2>&1; then
+            echo "release $tag exists already; published libraries are never replaced" >&2
+            exit 1
+          fi
+          {
+            echo "commit=$commit"
+            echo "tag=$tag"
+            echo "go=$(sed -n 's/^go: //p' native/UPSTREAM)"
+          } >> "$GITHUB_OUTPUT"
+        shell: bash
+    env:
+      # gh needs a token even for public repositories.
+      GH_TOKEN: ${{ github.token }}
+
+  build:
+    name: ${{ matrix.name }}
+    needs: plan
+    runs-on: ${{ matrix.runner }}
+    strategy:
+      fail-fast: false
+      # Keep in sync with NativeTarget.releaseTargets.
+      matrix:
+        include:
+          - { name: macos-arm64,               runner: macos-15,         os: macos,   arch: arm64 }
+          - { name: macos-x64,                 runner: macos-15,         os: macos,   arch: x64 }
+          - { name: ios-arm64-iphoneos,        runner: macos-15,         os: ios,     arch: arm64, sdk: iphoneos }
+          - { name: ios-arm64-iphonesimulator, runner: macos-15,         os: ios,     arch: arm64, sdk: iphonesimulator }
+          - { name: ios-x64-iphonesimulator,   runner: macos-15,         os: ios,     arch: x64,   sdk: iphonesimulator }
+          - { name: linux-x64,                 runner: ubuntu-24.04,     os: linux,   arch: x64,   manylinux: quay.io/pypa/manylinux_2_28_x86_64 }
+          - { name: linux-arm64,               runner: ubuntu-24.04-arm, os: linux,   arch: arm64, manylinux: quay.io/pypa/manylinux_2_28_aarch64 }
+          - { name: windows-x64,               runner: windows-2025,     os: windows, arch: x64 }
+          - { name: android-arm64,             runner: ubuntu-24.04,     os: android, arch: arm64 }
+          - { name: android-x64,               runner: ubuntu-24.04,     os: android, arch: x64 }
+          - { name: android-arm,               runner: ubuntu-24.04,     os: android, arch: arm }
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ needs.plan.outputs.go }}
+          cache: false
+      - name: Set up the Android NDK
+        if: matrix.os == 'android'
+        id: ndk
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: r28c
+          add-to-path: false
+      - run: dart pub get
+      - name: Build ${{ matrix.name }}
+        shell: bash
+        env:
+          MANYLINUX_IMAGE: ${{ matrix.manylinux }}
+        run: |
+          set -euo pipefail
+          mkdir -p out
+          ARGS=(--os "${{ matrix.os }}" --arch "${{ matrix.arch }}" --out out)
+          if [ -n "${{ matrix.sdk }}" ]; then ARGS+=(--ios-sdk "${{ matrix.sdk }}"); fi
+          if [ "${{ matrix.os }}" = android ]; then
+            # Generic clang; the build plan adds --target.
+            ARGS+=(--cc "${{ steps.ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang")
+          fi
+          if [ -n "$MANYLINUX_IMAGE" ]; then
+            # Link against glibc 2.28.
+            export MANYLINUX_GOROOT="$(go env GOROOT)"
+            ARGS+=(--go tool/ci/manylinux_go.sh)
+          fi
+          dart run tool/build_native.dart "${ARGS[@]}" | tee "out/SHA256SUMS.${{ matrix.name }}"
+      - name: Check the 16 KB page alignment Google Play requires
+        if: matrix.os == 'android'
+        run: |
+          set -euo pipefail
+          readelf="${{ steps.ndk.outputs.ndk-path }}/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+          for lib in out/libtailcat-android-*.so; do
+            "$readelf" -lW "$lib" | awk -v lib="$lib" '
+              /LOAD/ { if (strtonum($NF) < 16384) { print lib ": LOAD segment aligned to " $NF; bad = 1 } }
+              END { exit bad }'
+          done
+      - name: Check the glibc floor
+        if: matrix.os == 'linux'
+        run: |
+          set -euo pipefail
+          newest=$(objdump -T out/libtailcat-linux-*.so | grep -o 'GLIBC_[0-9.]*' | sort -uV | tail -1)
+          echo "newest glibc symbol version: $newest"
+          [ "$(printf '%s\n' "$newest" GLIBC_2.28 | sort -V | tail -1)" = GLIBC_2.28 ]
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          if-no-files-found: error
+          path: |
+            out/libtailcat-*.dylib
+            out/libtailcat-*.so
+            out/libtailcat-*.dll
+            out/libtailcat-*.json
+            out/SHA256SUMS.*
+
+  release:
+    name: Publish ${{ needs.plan.outputs.tag }}
+    needs: [plan, build]
+    runs-on: ubuntu-24.04
+    env:
+      RELEASE_TAG: ${{ needs.plan.outputs.tag }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ needs.plan.outputs.go }}
+          cache: false
+      - run: dart pub get
+      - uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+      - name: Assemble SHA256SUMS and BUILD_INFO.json
+        working-directory: artifacts
+        run: |
+          set -euo pipefail
+          cat SHA256SUMS.* | sort -k2 > SHA256SUMS
+          rm SHA256SUMS.*
+          sha256sum -c SHA256SUMS
+          jq -s 'sort_by(.artifact)' libtailcat-*.json > BUILD_INFO.json
+          rm libtailcat-*.json
+      - name: Pin the checksums in lib/src/hook/native_manifest.dart
+        # Fails on a missing target, before anything is published.
+        run: dart run tool/update_manifest.dart --sums artifacts/SHA256SUMS --tag "$RELEASE_TAG"
+      - name: Third-party notices
+        run: |
+          set -euo pipefail
+          git clone --quiet --filter=blob:none https://github.com/tailscale/tailcat upstream
+          git -C upstream checkout --quiet "${{ needs.plan.outputs.commit }}"
+          go install github.com/google/go-licenses/v2@latest
+          (cd upstream && "$(go env GOPATH)/bin/go-licenses" report ./cmd/libtailcat \
+              --ignore github.com/tailscale/tailcat \
+              --template ../tool/ci/notices.tpl > ../artifacts/THIRD_PARTY_NOTICES) || {
+            echo "go-licenses could not classify every module; see the log" >&2; exit 1; }
+          { cat native/LICENSE.upstream; echo; cat artifacts/THIRD_PARTY_NOTICES; } > notices.tmp
+          mv notices.tmp artifacts/THIRD_PARTY_NOTICES
+      - uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            artifacts/libtailcat-*.dylib
+            artifacts/libtailcat-*.so
+            artifacts/libtailcat-*.dll
+      - name: Release notes
+        run: |
+          set -euo pipefail
+          {
+            echo "Prebuilt libtailcat libraries for the Dart package \`libtailcat\`."
+            echo
+            echo "* Built from tailscale/tailcat@${{ needs.plan.outputs.commit }} with Go ${{ needs.plan.outputs.go }}; \`BUILD_INFO.json\` lists the patches of each library."
+            echo "* macOS 13+, iOS 13+ (device and simulator), Android API 24+ (16 KB pages), Linux glibc 2.28+, Windows x64."
+            echo "* Verify with \`sha256sum -c SHA256SUMS\` and \`gh attestation verify <file> --repo $GITHUB_REPOSITORY\`. The package's build hook pins these digests in \`lib/src/hook/native_manifest.dart\`."
+          } > RELEASE_NOTES.md
+          cat RELEASE_NOTES.md
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: ${{ env.RELEASE_TAG }}
+          body_path: RELEASE_NOTES.md
+          fail_on_unmatched_files: true
+          files: |
+            artifacts/libtailcat-*
+            artifacts/SHA256SUMS
+            artifacts/BUILD_INFO.json
+            artifacts/THIRD_PARTY_NOTICES
+      - name: Download the published assets and verify them
+        run: |
+          set -euo pipefail
+          mkdir verify
+          gh release download "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --dir verify
+          (cd verify && sha256sum -c SHA256SUMS)
+          dart run tool/update_manifest.dart --sums verify/SHA256SUMS --tag "$RELEASE_TAG" --check
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-manifest
+          path: lib/src/hook/native_manifest.dart
+      - name: Open the manifest pull request
+        # Needs the PR permission; see the header.
+        continue-on-error: true
+        uses: peter-evans/create-pull-request@v7
+        with:
+          branch: native-manifest/${{ env.RELEASE_TAG }}
+          add-paths: lib/src/hook/native_manifest.dart
+          commit-message: "Pin native release ${{ env.RELEASE_TAG }} checksums"
+          title: "Pin native release ${{ env.RELEASE_TAG }} checksums"
+          body: |
+            Generated by the native-release workflow from the `${{ env.RELEASE_TAG }}`
+            release's `SHA256SUMS`. Merge, then bump the package version and publish.

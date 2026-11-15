@@ -1,0 +1,11 @@
+tags:
+  # Native library + local relay; skipped when either is missing.
+  native:
+    timeout: 2m
+  # Against upstream's `tailcat` CLI.
+  interop:
+    timeout: 3m
+  # Public relays; run nightly only.
+  network:
+    timeout: 3m
+    skip: uses the public relays; run with --run-skipped -t network

@@ -1,0 +1,53 @@
+name: Publish to pub.dev
+
+# A vX.Y.Z tag publishes via pub.dev's automated publishing (OIDC). Versions
+# already on pub.dev are skipped. Runs in the protected `pub.dev` environment,
+# which must also be named on pub.dev under Admin > Automated publishing.
+
+on:
+  push:
+    tags: ['v[0-9]+.[0-9]+.[0-9]+*']
+
+jobs:
+  check:
+    name: Compare the tag with pubspec.yaml and pub.dev
+    runs-on: ubuntu-24.04
+    outputs:
+      publish: ${{ steps.check.outputs.publish }}
+    steps:
+      - uses: actions/checkout@v4
+      - id: check
+        run: |
+          set -euo pipefail
+          version=$(sed -n 's/^version: *//p' pubspec.yaml)
+          if [ "${GITHUB_REF_NAME#v}" != "$version" ]; then
+            echo "tag $GITHUB_REF_NAME does not match pubspec.yaml version $version" >&2
+            exit 1
+          fi
+          if grep -q "^const nativeReleaseTag = '';" lib/src/hook/native_manifest.dart; then
+            echo "no native release is pinned; applications could not download the library" >&2
+            exit 1
+          fi
+          if curl -fsS "https://pub.dev/api/packages/libtailcat/versions/$version" > /dev/null; then
+            echo "libtailcat $version is already on pub.dev; nothing to publish"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  publish:
+    name: Publish to pub.dev
+    needs: check
+    if: needs.check.outputs.publish == 'true'
+    runs-on: ubuntu-24.04
+    environment: pub.dev
+    permissions:
+      id-token: write # setup-dart exchanges it for a pub.dev token
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      - run: dart pub publish --dry-run
+      - run: dart pub publish --force

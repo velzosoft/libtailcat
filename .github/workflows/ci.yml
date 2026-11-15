@@ -1,0 +1,108 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # No Go and no native library.
+  analyze-and-unit:
+    name: Analyze & unit tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, macos-15, windows-2025]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      - run: dart pub get
+        working-directory: tool/ffigen
+      # Resolved packages only: the formatter needs each package's language
+      # version. The examples job formats the examples.
+      - run: dart format --output=none --set-exit-if-changed lib test hook tool/*.dart tool/src tool/ffigen
+        if: runner.os != 'Windows' # line endings
+      - run: dart analyze --fatal-infos
+      - run: dart test test/unit --reporter expanded
+
+  # No Go and no native library; Tin Can's unit tests use an in-memory network.
+  examples:
+    name: Examples (analyze & unit tests)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+      # Both examples read the repository's override file.
+      - run: |
+          echo '{"allow_missing_native": true}' > hook/local_config.json
+      - run: dart pub get
+        working-directory: example/pipe
+      - run: dart format --output=none --set-exit-if-changed .
+        working-directory: example/pipe
+      - run: dart analyze --fatal-infos
+        working-directory: example/pipe
+      - run: flutter pub get
+        working-directory: example/tin_can
+      - run: dart format --output=none --set-exit-if-changed .
+        working-directory: example/tin_can
+      - run: flutter analyze --fatal-infos
+        working-directory: example/tin_can
+      - run: flutter test test/unit --reporter expanded
+        working-directory: example/tin_can
+
+  # Hermetic: a local DERP relay, never the public ones.
+  native:
+    name: Native & interop tests (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        # Windows runners have the MinGW-w64 gcc cgo needs.
+        os: [ubuntu-24.04, macos-15, windows-2025]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - id: pin
+        shell: bash
+        run: |
+          echo "go=$(sed -n 's/^go: //p' native/UPSTREAM)" >> "$GITHUB_OUTPUT"
+      - uses: actions/setup-go@v5
+        with:
+          go-version: ${{ steps.pin.outputs.go }}
+          cache: false
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/go/pkg/mod
+            ~/.cache/go-build
+            ~/Library/Caches/go-build
+            ~\AppData\Local\go-build
+          key: go-${{ runner.os }}-${{ runner.arch }}-${{ hashFiles('native/UPSTREAM') }}
+      - run: dart pub get
+      - shell: bash
+        run: |
+          echo '{"native": "source"}' > hook/local_config.json
+      - run: dart test --reporter expanded
+
+  publish-dry-run:
+    name: pub publish --dry-run
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dart-lang/setup-dart@v1
+        with:
+          sdk: stable
+      - run: dart pub get
+      - run: dart pub publish --dry-run
