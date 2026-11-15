@@ -25,15 +25,7 @@ They pair with a QR code and the path goes direct. Fingertips cross between
 the screens in real time. Each phone leaves the app in turn, and the string
 reconnects when it comes back. The Inspector shows what the library reports.
 
-<!--
-  GitHub plays a video inline only when it was uploaded through its web
-  editor; it strips <video> tags and shows links to repository files as plain
-  links. To make the video play: open this file on github.com, click edit,
-  drag video/tailcat-demo.mp4 (under GitHub's 10 MB limit) onto the line
-  below, and let GitHub's https://github.com/user-attachments/assets/... URL
-  replace that line, alone on its line.
--->
-[Watch the demo (75 s, MP4)](video/tailcat-demo.mp4)
+https://github.com/user-attachments/assets/dadedf65-f09b-42de-a306-6980119803d7
 
 ## Quick start
 
