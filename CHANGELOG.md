@@ -1,3 +1,10 @@
+## 1.0.1
+
+* Windows: a listener waiting a second or more for a connection, or a socket
+  waiting as long for data, could fail with a `TailcatTimeoutException`; the
+  listener closed and the socket stopped reading or writing. Fixed.
+* No API changes.
+
 ## 1.0.0
 
 First release: Dart bindings for [Tailcat](https://github.com/tailscale/tailcat)
