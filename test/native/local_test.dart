@@ -4,7 +4,11 @@
 @Tags(['native'])
 library;
 
+import 'dart:io';
+
 import 'package:libtailcat/libtailcat.dart';
+import 'package:libtailcat/src/bindings/native_api.dart' as native;
+import 'package:libtailcat/src/runtime/token.dart';
 import 'package:test/test.dart';
 
 import '../support/native.dart';
@@ -83,6 +87,33 @@ void main() {
           ),
         ),
       );
+    });
+  }, skip: nativeUnavailable);
+
+  group('a sliced token', () {
+    late CancelSlot slot;
+    late SlicedToken token;
+
+    setUp(() {
+      slot = CancelSlot.allocate();
+      token = SlicedToken(slot);
+      addTearDown(() {
+        token.dispose();
+        slot.free();
+      });
+    });
+
+    // Go's clock on Windows can expire the slice a tick before ours.
+    test('takes a timeout just short of the slice as the slice', () {
+      final status = token.run((_) {
+        sleep(sliceDuration - nativeClockSlack ~/ 2);
+        return native.TC_TIMEOUT;
+      });
+      expect(status, sliceElapsed);
+    });
+
+    test('keeps an early timeout the library raised itself', () {
+      expect(token.run((_) => native.TC_TIMEOUT), native.TC_TIMEOUT);
     });
   }, skip: nativeUnavailable);
 }

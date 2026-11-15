@@ -18,6 +18,10 @@ const sliceDuration = Duration(seconds: 1);
 /// `TC_TIMEOUT` for timeouts the native library raised itself.
 const int sliceElapsed = -1;
 
+/// How much earlier than a [Stopwatch] the native library may expire a slice.
+/// Go's clock on Windows advances in timer ticks of up to 15.6 ms.
+const nativeClockSlack = Duration(milliseconds: 50);
+
 /// Native memory shared by a worker and its owner: the worker's current
 /// token and a stop flag. A worker blocked in a native call can't receive
 /// messages, so the owner cancels through this.
@@ -77,9 +81,9 @@ final class SlicedToken {
     }
     final status = call(_token);
     if (status == native.TC_TIMEOUT || status == native.TC_CANCELLED) {
-      // The stopwatch started before the token, so a slice timeout always
-      // shows a full slice elapsed.
-      final expired = _age.elapsed >= sliceDuration;
+      // The stopwatch started before the token, so a slice timeout shows a
+      // full slice elapsed, give or take the native clock's granularity.
+      final expired = _age.elapsed >= sliceDuration - nativeClockSlack;
       _release();
       if (status == native.TC_TIMEOUT && expired) return sliceElapsed;
       if (_slot.isCancelled) return native.TC_CANCELLED;
