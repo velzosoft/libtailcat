@@ -39,7 +39,7 @@ reconnects when it comes back. The Inspector shows what the library reports.
 
 ```yaml
 dependencies:
-  libtailcat: ^0.1.0
+  libtailcat: ^1.0.0
 ```
 
 The listening side:
