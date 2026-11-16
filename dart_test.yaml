@@ -5,7 +5,7 @@ tags:
   # Against upstream's `tailcat` CLI.
   interop:
     timeout: 3m
-  # Public relays; run nightly only.
+  # Public relays; opt-in only.
   network:
     timeout: 3m
     skip: uses the public relays; run with --run-skipped -t network

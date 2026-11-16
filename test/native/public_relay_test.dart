@@ -11,7 +11,7 @@ import 'package:test/test.dart';
 
 import '../support/native.dart';
 
-// The public relays are rate limited, so this runs nightly:
+// The public relays are rate limited, so this runs only when asked for:
 // `dart test --run-skipped -t network`.
 void main() {
   test('a server and a client meet over the public relays', () async {
