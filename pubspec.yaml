@@ -2,7 +2,7 @@ name: libtailcat
 description: >-
   Dart bindings for Tailcat: WireGuard-encrypted point-to-point TCP and UDP
   tunnels over Tailscale's relays and NAT traversal, as dart:io sockets.
-version: 1.0.1
+version: 1.0.2
 repository: https://github.com/velzosoft/libtailcat
 issue_tracker: https://github.com/velzosoft/libtailcat/issues
 topics:

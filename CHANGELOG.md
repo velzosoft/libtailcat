@@ -1,3 +1,17 @@
+## 1.0.2
+
+* The native library is built from [Tailcat v0.8.0](https://github.com/tailscale/tailcat/releases/tag/v0.8.0)
+  (upstream commit `b9491c13c639`) with Go 1.27.4. The C ABI is unchanged.
+* `TailcatServer.close` and `TailcatClient.close` could hang after a few
+  hundred recent short connections. Closed TCP connections now linger for
+  5 seconds instead of 60, so new connections that reuse a recent port also
+  stall far less often.
+* A DERP map from `derpMapUrl` with a `null` region or node crashed the
+  library; such entries are now ignored.
+* A server's address could carry fewer than two relays, or none, when a
+  region's node list started with STUN-only nodes.
+* No API changes.
+
 ## 1.0.1
 
 * Windows: a listener waiting a second or more for a connection, or a socket
