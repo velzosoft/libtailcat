@@ -126,8 +126,8 @@ are copies of upstream's. Then:
 2. Run `dart test` with `"native": "source"`, then the smoke app on Android
    and iOS.
 3. Check whether `native/patches/android_ifaces.go` is still needed: build
-   without it and see whether the Android smoke test still fails. Remove the
-   patch as soon as it does not.
+   without it and see whether the Android smoke test still fails or reports a
+   relayed path. Remove the patch as soon as it passes with a direct path.
 4. Cut a native release.
 
 ## Cutting a native release

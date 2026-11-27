@@ -1,6 +1,6 @@
 # Not part of the pub package.
 specs/
-# The demo video; the README links to it on GitHub.
+# The demo video and its poster; the README links to them on GitHub.
 video/
 .github/
 hook/local_config.json

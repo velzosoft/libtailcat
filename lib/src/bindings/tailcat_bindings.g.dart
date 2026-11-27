@@ -208,8 +208,9 @@ external int tc_conn_close_write(
 /// succeeds with count zero and is not an EOF probe.
 ///
 /// For UDP, one call consumes one datagram, truncating it if capacity is too small;
-/// an empty datagram returns TC_OK with count zero. buffer may be NULL only when
-/// capacity is zero.
+/// an empty datagram returns TC_OK with count zero. A zero-capacity UDP read
+/// consumes one datagram and succeeds with count zero. buffer may be NULL only
+/// when capacity is zero.
 ///
 /// Process returned bytes before the status. Cancellation/timeout ends this read
 /// without closing the connection. The call is synchronous; another thread can

@@ -25,7 +25,7 @@ They pair with a QR code and the path goes direct. Fingertips cross between
 the screens in real time. Each phone leaves the app in turn, and the string
 reconnects when it comes back. The Inspector shows what the library reports.
 
-https://github.com/user-attachments/assets/dadedf65-f09b-42de-a306-6980119803d7
+[![Play the Tin Can demo video (75 s)](https://raw.githubusercontent.com/velzosoft/libtailcat/main/video/tailcat-demo-poster.jpg)](https://github.com/user-attachments/assets/dadedf65-f09b-42de-a306-6980119803d7)
 
 ## Quick start
 

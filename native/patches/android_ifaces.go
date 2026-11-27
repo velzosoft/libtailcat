@@ -6,7 +6,8 @@
 // Overlaid into upstream's cmd/libtailcat for Android builds.
 //
 // Android denies apps the netlink socket net.Interfaces uses (golang/go#40569),
-// so netmon has no interfaces and tailcat's region probe dereferences nil.
+// so netmon has no interfaces. Since tailcat v0.8.0 that no longer crashes,
+// but without local addresses peers stay relayed instead of going direct.
 // feature/androidbin's fallback skips cgo builds, so this registers the same
 // synthetic interface. Remove once upstream does.
 package main
