@@ -5,7 +5,7 @@
 library;
 
 /// `native-<commit>-<n>`; empty until a native release is pinned.
-const nativeReleaseTag = 'native-e00cdde6ff78-1';
+const nativeReleaseTag = 'native-b9491c13c639-1';
 
 /// Base URL of GitHub release downloads.
 const nativeReleaseBaseUrl =
@@ -14,27 +14,27 @@ const nativeReleaseBaseUrl =
 /// SHA-256 (hex) by `NativeTarget.artifactFileName`. Generated; don't edit.
 const nativeArtifacts = <String, String>{
   'libtailcat-macos-arm64.dylib':
-      '423e1f01d3ed9318c606028804ce404b734efffe728c12003b10df30edc79a38',
+      '20e56de26086b381b8a37eabcd4e582013c10fdec75c408fab880be7e32a9b48',
   'libtailcat-macos-x64.dylib':
-      '8de6243c56f0086e1963cce4c6457625aca46ccd74805a431a8c6812eff47321',
+      '21b4910fcde247191eaa024b3f6d9d4e2d671dc9fea919f3cab14e8a150a7a7b',
   'libtailcat-ios-arm64-iphoneos.dylib':
-      'ac9292e2c5fd7e1b94e7df4b847e5055c35135ede7c6e59107c80d4a886cbbe6',
+      'a11b0d6ff5c2e0c31728cc7429e3729c7dd5acf4610cd25f9d4879b3592f6495',
   'libtailcat-ios-arm64-iphonesimulator.dylib':
-      '9665edcff52180810ca6e0b40513a083bc1550cbe9fee9a5a4b2d4f12fe88473',
+      '661d93a3c04093a62d5b50341774f90e828722b0a0d123d5a5610f4979666eeb',
   'libtailcat-ios-x64-iphonesimulator.dylib':
-      '3416eb501ee18e7eda72cfb598d482949863525b4bfda4a1a271227dd45e44c2',
+      '1673d447a652e2f3c393db243105753c88fb5e15a54616f8b57ae797b7370279',
   'libtailcat-linux-x64.so':
-      'b46a793ff528226d237e5cb02cf2b23a2a6ef7bb50152ce69e31a947538e4bc2',
+      'cb246c11f2de63326024faa380cc28a0ba2beb96feb53b5e10788bf82d248806',
   'libtailcat-linux-arm64.so':
-      'c21d122bb925fa7354481f9d8c386dc33387a4eb82fbf516d0cd7e8559b172eb',
+      '6d4f3c56eff80c0255eb1dd1fdd5364899d5b441ea071afbdda78c696d2807c4',
   'libtailcat-windows-x64.dll':
-      'b6c5c91eb154233926ed3f8f5cd2a6dfb8ee7221350a81119f0a310bda542a92',
+      '121339cc5702403fb17d58bd6e613511a64ea94bc16543d342e6fe273d946d41',
   'libtailcat-android-arm64.so':
-      '7c4727ed95e95c66bab86bd5bc80c6a6e063cd88a6ddbdac5928f886936dd7c2',
+      'ee93dd5c2f0c011fb55eab819deb8ce81c0be9e0b762307393e9ecf48bba74ec',
   'libtailcat-android-x64.so':
-      '1e7dca5805faa95fa63a0cb404a10912c54f4aff4852a851c2aea1aeb5ba17de',
+      '6517193426e98e78b5d0f976ade9d321e37b0aacda744113ceedcf4d5d1131fb',
   'libtailcat-android-arm.so':
-      '968b524a4ab476594517b248edf01f1e78415fd6cf3db453a1c729d531178e4e',
+      'd65c01b09ef2a675d48f0ce036812816c5e44c5c3e23fbc6671585d7db6709fe',
 };
 
 /// The prebuilt artifacts of one native release.
